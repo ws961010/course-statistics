@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eaf5ff">
+  <meta name="description" content="2026年8月至2036年8月每日课程统计工具">
+  <meta name="application-name" content="课程统计">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="课程统计">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <title>每日课程统计</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #35506a;
+      --muted: #7c91a5;
+      --blue: #6eaee8;
+      --blue-deep: #4f91cf;
+      --blue-soft: #eaf5ff;
+      --pink: #f3a9bd;
+      --pink-soft: #fff0f4;
+      --green: #43b88a;
+      --green-soft: #e7f8f1;
+      --white: rgba(255, 255, 255, 0.94);
+      --shadow: 0 0.9rem 2.4rem rgba(83, 124, 157, 0.16);
+      --safe-bottom: env(safe-area-inset-bottom, 0rem);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 100%;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-width: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(243, 169, 189, 0.24), transparent 24%),
+        radial-gradient(circle at 92% 22%, rgba(110, 174, 232, 0.25), transparent 28%),
+        linear-gradient(145deg, #f8fcff 0%, #fef9fb 100%);
+      font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 0.18rem solid rgba(79, 145, 207, 0.42);
+      outline-offset: 0.12rem;
+    }
+
+    .app-shell {
+      width: min(100% - 1.25rem, 62rem);
+      margin: 0 auto;
+      padding: max(1rem, env(safe-area-inset-top, 0rem)) 0 calc(1.25rem + var(--safe-bottom));
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0 0 0.75rem;
+      padding: 0 0.25rem;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: clamp(1.05rem, 3.8vw, 1.35rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .range-label {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: clamp(0.7rem, 2.7vw, 0.85rem);
+    }
+
+    .calendar-card,
+    .stats-card,
+    .backup-card {
+      border: 1px solid rgba(255, 255, 255, 0.86);
+      border-radius: 1.5rem;
+      background: var(--white);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(0.75rem);
+      -webkit-backdrop-filter: blur(0.75rem);
+    }
+
+    .calendar-card {
+      overflow: hidden;
+    }
+
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.9rem clamp(0.75rem, 3vw, 1.25rem);
+      background: linear-gradient(115deg, rgba(234, 245, 255, 0.95), rgba(255, 240, 244, 0.9));
+    }
+
+    .month-title-wrap {
+      min-width: 0;
+      text-align: center;
+    }
+
+    .month-title {
+      margin: 0;
+      color: #315779;
+      font-size: clamp(1.25rem, 5vw, 1.75rem);
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+
+    .month-hint {
+      margin: 0.18rem 0 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .nav-button,
+    .close-button {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      width: 2.75rem;
+      min-width: 2.75rem;
+      height: 2.75rem;
+      min-height: 2.75rem;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 0.28rem 0.8rem rgba(81, 130, 169, 0.12);
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, opacity 160ms ease;
+    }
+
+    .nav-button {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .nav-button:hover:not(:disabled),
+    .close-button:hover,
+    .action-button:hover {
+      transform: translateY(-0.08rem);
+    }
+
+    .nav-button:active:not(:disabled),
+    .close-button:active,
+    .action-button:active,
+    .date-cell:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .nav-button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .weekday-grid,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .weekday-grid {
+      padding: 0.78rem 0.55rem 0.45rem;
+      color: var(--muted);
+      font-size: clamp(0.72rem, 2.8vw, 0.86rem);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .weekday-grid span:nth-last-child(-n + 2) {
+      color: #d58a9d;
+    }
+
+    .calendar-grid {
+      gap: clamp(0.18rem, 0.8vw, 0.48rem);
+      padding: 0.35rem clamp(0.35rem, 1.8vw, 0.9rem) 1rem;
+    }
+
+    .date-cell {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      width: 100%;
+      min-width: 0;
+      min-height: clamp(3.15rem, 11vw, 5.85rem);
+      padding: clamp(0.42rem, 1.5vw, 0.72rem);
+      border: 1px solid transparent;
+      border-radius: clamp(0.7rem, 2.4vw, 1rem);
+      background: #f8fbfe;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+    }
+
+    .date-cell:hover:not(:disabled) {
+      border-color: rgba(110, 174, 232, 0.5);
+      background: var(--blue-soft);
+      box-shadow: 0 0.35rem 0.85rem rgba(96, 153, 197, 0.12);
+    }
+
+    .date-cell:disabled {
+      color: #c4ced7;
+      background: transparent;
+      cursor: default;
+    }
+
+    .date-number {
+      position: relative;
+      z-index: 1;
+      font-size: clamp(0.82rem, 3.2vw, 1rem);
+      font-weight: 700;
+    }
+
+    .date-cell.is-today {
+      border-color: rgba(243, 169, 189, 0.72);
+      background: var(--pink-soft);
+    }
+
+    .date-cell.is-today .date-number::after {
+      content: "今";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 0.22rem;
+      padding: 0.06rem 0.19rem;
+      border-radius: 0.3rem;
+      color: #b66e82;
+      background: rgba(243, 169, 189, 0.2);
+      font-size: 0.62rem;
+      font-weight: 800;
+      vertical-align: 0.12rem;
+    }
+
+    .date-cell.has-data {
+      background: linear-gradient(145deg, #f8fffc, var(--green-soft));
+      border-color: rgba(67, 184, 138, 0.3);
+    }
+
+    .data-dot {
+      position: absolute;
+      top: 0.52rem;
+      right: 0.52rem;
+      width: 0.58rem;
+      height: 0.58rem;
+      border: 0.12rem solid rgba(255, 255, 255, 0.95);
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0.1rem 0.35rem rgba(39, 139, 101, 0.35);
+    }
+
+    .day-total {
+      position: absolute;
+      right: 0.42rem;
+      bottom: 0.38rem;
+      color: #5e9f86;
+      font-size: clamp(0.58rem, 2.15vw, 0.7rem);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .stats-card {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-around;
+      gap: 0.35rem;
+      margin-top: 0.85rem;
+      padding: clamp(0.85rem, 3vw, 1.15rem) clamp(0.45rem, 2vw, 1rem);
+    }
+
+    .stat-item {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 0.2rem 0.35rem;
+      text-align: center;
+    }
+
+    .stat-item + .stat-item::before {
+      content: "";
+      position: absolute;
+      top: 12%;
+      bottom: 12%;
+      left: -0.18rem;
+      width: 0.0625rem;
+      background: #e3edf5;
+    }
+
+    .stat-value {
+      display: block;
+      color: #3d709b;
+      font-size: clamp(1.2rem, 5vw, 1.8rem);
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .stat-item:nth-child(2) .stat-value {
+      color: #c4788d;
+    }
+
+    .stat-item:nth-child(3) .stat-value {
+      color: #439676;
+    }
+
+    .stat-label {
+      display: block;
+      margin-top: 0.25rem;
+      color: var(--muted);
+      font-size: clamp(0.67rem, 2.55vw, 0.84rem);
+      line-height: 1.35;
+    }
+
+    .backup-card {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-top: 0.85rem;
+      padding: 0.75rem 0.9rem;
+    }
+
+    .backup-copy {
+      flex: 1 1 18rem;
+      min-width: 0;
+    }
+
+    .backup-title {
+      margin: 0;
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .backup-note {
+      margin: 0.16rem 0 0;
+      color: var(--muted);
+      font-size: 0.7rem;
+      line-height: 1.55;
+    }
+
+    .backup-status-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 0.7rem;
+      margin-top: 0.38rem;
+    }
+
+    .backup-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      color: #668098;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
+    .backup-status::before {
+      content: "";
+      width: 0.46rem;
+      height: 0.46rem;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0.16rem rgba(67, 184, 138, 0.12);
+    }
+
+    .backup-status.is-warning {
+      color: #b16b7d;
+    }
+
+    .backup-status.is-warning::before {
+      background: var(--pink);
+      box-shadow: 0 0 0 0.16rem rgba(243, 169, 189, 0.15);
+    }
+
+    .backup-guidance {
+      width: 100%;
+      margin: 0.2rem 0 0;
+      padding-top: 0.55rem;
+      border-top: 1px dashed rgba(110, 174, 232, 0.25);
+      color: #778b9f;
+      font-size: 0.67rem;
+      line-height: 1.6;
+    }
+
+    .backup-guidance strong {
+      color: #a86578;
+    }
+
+    .backup-actions {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 0.45rem;
+    }
+
+    .action-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+      padding: 0.62rem 0.86rem;
+      border: 1px solid rgba(110, 174, 232, 0.32);
+      border-radius: 0.85rem;
+      color: #47789f;
+      background: var(--blue-soft);
+      font-size: 0.78rem;
+      font-weight: 750;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: transform 150ms ease, filter 150ms ease;
+    }
+
+    .action-button.secondary {
+      border-color: rgba(243, 169, 189, 0.35);
+      color: #af6e80;
+      background: var(--pink-soft);
+    }
+
+    .action-button.primary {
+      border-color: transparent;
+      color: #fff;
+      background: linear-gradient(110deg, var(--blue), var(--blue-deep));
+      box-shadow: 0 0.35rem 0.8rem rgba(79, 145, 207, 0.25);
+    }
+
+    .action-button.full {
+      flex: 1 1 0;
+    }
+
+    .footer-note {
+      margin: 1.1rem 0 0;
+      color: #bd7c8e;
+      font-family: "KaiTi", "STKaiti", "Microsoft YaHei", cursive;
+      font-size: clamp(0.92rem, 3.5vw, 1.08rem);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    .footer-note::before,
+    .footer-note::after {
+      content: "✿";
+      margin: 0 0.42rem;
+      color: #efb4c4;
+      font-size: 0.8em;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      z-index: 100;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(1rem, env(safe-area-inset-top, 0rem)) 1rem max(1rem, env(safe-area-inset-bottom, 0rem));
+      background: rgba(42, 66, 88, 0.42);
+      backdrop-filter: blur(0.35rem);
+      -webkit-backdrop-filter: blur(0.35rem);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 180ms ease, visibility 180ms ease;
+    }
+
+    .modal-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-panel {
+      width: min(100%, 28rem);
+      max-height: calc(100vh - 2rem);
+      max-height: calc(100dvh - 2rem);
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      border-radius: 1.45rem;
+      background: #fff;
+      box-shadow: 0 1.4rem 4rem rgba(38, 68, 94, 0.27);
+      transform: translateY(0.8rem) scale(0.98);
+      transition: transform 200ms ease;
+    }
+
+    .modal-backdrop.is-open .modal-panel {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      padding: 1rem 1rem 0.65rem 1.25rem;
+    }
+
+    .modal-title {
+      margin: 0;
+      color: #345d80;
+      font-size: clamp(1.12rem, 4.5vw, 1.4rem);
+      font-weight: 850;
+    }
+
+    .close-button {
+      box-shadow: none;
+      color: var(--muted);
+      background: #f2f6f9;
+      font-size: 1.25rem;
+    }
+
+    .entry-form,
+    .format-body {
+      padding: 0.55rem 1.25rem 1.25rem;
+    }
+
+    .input-group {
+      margin-bottom: 0.8rem;
+    }
+
+    .input-group label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-bottom: 0.35rem;
+      color: #55738e;
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+
+    .input-tip {
+      color: #a1b0bd;
+      font-size: 0.68rem;
+      font-weight: 500;
+    }
+
+    .number-input {
+      width: 100%;
+      min-height: 2.75rem;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid #dce8f1;
+      border-radius: 0.8rem;
+      color: var(--ink);
+      background: #f9fcfe;
+      font-size: 1rem;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .number-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 0.22rem rgba(110, 174, 232, 0.13);
+    }
+
+    .form-actions,
+    .format-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 1rem;
+    }
+
+    .format-copy {
+      margin: 0 0 0.95rem;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.65;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 200;
+      left: 50%;
+      bottom: calc(1.25rem + var(--safe-bottom));
+      max-width: calc(100% - 2rem);
+      padding: 0.72rem 1rem;
+      border-radius: 2rem;
+      color: #fff;
+      background: rgba(48, 76, 99, 0.92);
+      box-shadow: 0 0.65rem 1.8rem rgba(39, 65, 85, 0.22);
+      font-size: 0.82rem;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 0.7rem);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 0.0625rem;
+      height: 0.0625rem;
+      padding: 0;
+      margin: -0.0625rem;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 31.25rem) {
+      .app-shell {
+        width: min(100% - 0.7rem, 62rem);
+      }
+
+      .brand-row {
+        padding: 0 0.35rem;
+      }
+
+      .backup-card {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .backup-actions {
+        width: 100%;
+      }
+
+      .backup-actions .action-button {
+        flex: 1 1 0;
+      }
+    }
+
+    @media (max-width: 22.5rem) {
+      .month-hint,
+      .range-label,
+      .day-total {
+        display: none;
+      }
+
+      .calendar-grid {
+        gap: 0.12rem;
+        padding-inline: 0.22rem;
+      }
+
+      .date-cell {
+        padding: 0.35rem;
+      }
+
+      .data-dot {
+        top: 0.42rem;
+        right: 0.35rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="brand-row">
+      <h1 class="brand-title">📚 每日课程统计</h1>
+      <span class="range-label">2026.08 — 2036.08</span>
+    </header>
+
+    <section class="calendar-card" aria-label="课程日历">
+      <nav class="month-nav" aria-label="月份导航">
+        <button class="nav-button" id="prevMonth" type="button" aria-label="上一个月">‹</button>
+        <div class="month-title-wrap" aria-live="polite">
+          <h2 class="month-title" id="monthTitle">2026年8月</h2>
+          <p class="month-hint">点击日期，记录当天课程</p>
+        </div>
+        <button class="nav-button" id="nextMonth" type="button" aria-label="下一个月">›</button>
+      </nav>
+
+      <div class="weekday-grid" aria-hidden="true">
+        <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+      </div>
+      <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="当月日历"></div>
+    </section>
+
+    <section class="stats-card" aria-label="本月统计" aria-live="polite">
+      <div class="stat-item">
+        <strong class="stat-value" id="regularTotal">0</strong>
+        <span class="stat-label">本月正课</span>
+      </div>
+      <div class="stat-item">
+        <strong class="stat-value" id="studyTotal">0</strong>
+        <span class="stat-label">本月自习</span>
+      </div>
+      <div class="stat-item">
+        <strong class="stat-value" id="recordedDays">0/31</strong>
+        <span class="stat-label">已录入天数</span>
+      </div>
+    </section>
+
+    <section class="backup-card" aria-label="数据备份">
+      <div class="backup-copy">
+        <h2 class="backup-title">数据备份</h2>
+        <p class="backup-note">课程记录会同时保存到浏览器的两套本地存储中</p>
+        <div class="backup-status-list" aria-live="polite">
+          <span class="backup-status" id="storageStatus">双重存储：正在检查</span>
+          <span class="backup-status is-warning" id="lastBackupStatus">上次备份：从未备份</span>
+          <span class="backup-status is-warning" id="restoreTestStatus">恢复测试：从未测试</span>
+        </div>
+      </div>
+      <div class="backup-actions">
+        <button class="action-button" id="exportButton" type="button">导出数据</button>
+        <button class="action-button secondary" id="importButton" type="button">导入数据</button>
+        <input class="sr-only" id="importFile" type="file" accept="application/json,.json" tabindex="-1" aria-hidden="true">
+      </div>
+      <p class="backup-guidance"><strong>重要：</strong>更换手机、清理浏览器或升级系统前，请务必先导出 JSON。建议每月导出后再导入测试一次。备份文件可保存至 iCloud Drive、手机文件夹、个人云盘、华为云空间或文件管理。</p>
+    </section>
+
+    <p class="footer-note">您今天辛苦啦～</p>
+  </main>
+
+  <div class="modal-backdrop" id="entryModal" role="presentation" aria-hidden="true">
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="entryModalTitle">
+      <header class="modal-header">
+        <h2 class="modal-title" id="entryModalTitle">2026年8月1日</h2>
+        <button class="close-button" id="entryClose" type="button" aria-label="关闭录入窗口">×</button>
+      </header>
+      <form class="entry-form" id="entryForm">
+        <div class="input-group">
+          <label for="morningInput"><span>🌤️ 早自习数量</span><span class="input-tip">请输入 0 或正整数</span></label>
+          <input class="number-input" id="morningInput" name="morning" type="number" min="0" step="1" inputmode="numeric" required>
+        </div>
+        <div class="input-group">
+          <label for="regularInput"><span>📖 正课数量</span><span class="input-tip">请输入 0 或正整数</span></label>
+          <input class="number-input" id="regularInput" name="regular" type="number" min="0" step="1" inputmode="numeric" required>
+        </div>
+        <div class="input-group">
+          <label for="eveningInput"><span>🌙 晚自习数量</span><span class="input-tip">请输入 0 或正整数</span></label>
+          <input class="number-input" id="eveningInput" name="evening" type="number" min="0" step="1" inputmode="numeric" required>
+        </div>
+        <div class="form-actions">
+          <button class="action-button secondary full" id="cancelEntry" type="button">取消</button>
+          <button class="action-button primary full" type="submit">确认保存</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="formatModal" role="presentation" aria-hidden="true">
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="formatModalTitle">
+      <header class="modal-header">
+        <h2 class="modal-title" id="formatModalTitle">选择导出格式</h2>
+        <button class="close-button" id="formatClose" type="button" aria-label="关闭导出窗口">×</button>
+      </header>
+      <div class="format-body">
+        <p class="format-copy">JSON 适合完整备份并再次导入；CSV 适合用 Excel 或表格软件查看。</p>
+        <div class="format-actions">
+          <button class="action-button primary full" id="exportJson" type="button">导出 JSON</button>
+          <button class="action-button secondary full" id="exportCsv" type="button">导出 CSV</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const START_YEAR = 2026;
+      const START_MONTH = 7;
+      const END_YEAR = 2036;
+      const END_MONTH = 7;
+      const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+      const DB_NAME = "course-statistics-db";
+      const DB_VERSION = 1;
+      const RECORD_STORE = "records";
+      const META_STORE = "meta";
+      const LAST_BACKUP_KEY = "courseStats:lastBackupAt";
+      const LAST_RESTORE_TEST_KEY = "courseStats:lastRestoreTestAt";
+      const RECORD_TIMESTAMPS_KEY = "courseStats:recordTimestamps";
+      const REMINDER_DAYS = 30;
+      const firstAllowedDate = new Date(START_YEAR, START_MONTH, 1);
+      const lastAllowedDate = new Date(END_YEAR, END_MONTH + 1, 0);
+
+      const elements = {
+        monthTitle: document.getElementById("monthTitle"),
+        calendarGrid: document.getElementById("calendarGrid"),
+        prevMonth: document.getElementById("prevMonth"),
+        nextMonth: document.getElementById("nextMonth"),
+        regularTotal: document.getElementById("regularTotal"),
+        studyTotal: document.getElementById("studyTotal"),
+        recordedDays: document.getElementById("recordedDays"),
+        entryModal: document.getElementById("entryModal"),
+        entryModalTitle: document.getElementById("entryModalTitle"),
+        entryForm: document.getElementById("entryForm"),
+        entryClose: document.getElementById("entryClose"),
+        cancelEntry: document.getElementById("cancelEntry"),
+        morningInput: document.getElementById("morningInput"),
+        regularInput: document.getElementById("regularInput"),
+        eveningInput: document.getElementById("eveningInput"),
+        formatModal: document.getElementById("formatModal"),
+        formatClose: document.getElementById("formatClose"),
+        exportButton: document.getElementById("exportButton"),
+        exportJson: document.getElementById("exportJson"),
+        exportCsv: document.getElementById("exportCsv"),
+        importButton: document.getElementById("importButton"),
+        importFile: document.getElementById("importFile"),
+        storageStatus: document.getElementById("storageStatus"),
+        lastBackupStatus: document.getElementById("lastBackupStatus"),
+        restoreTestStatus: document.getElementById("restoreTestStatus"),
+        toast: document.getElementById("toast")
+      };
+
+      const now = new Date();
+      const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      let activeDate = nowMonth >= firstAllowedDate && nowMonth <= lastAllowedDate
+        ? nowMonth
+        : new Date(START_YEAR, START_MONTH, 1);
+      let selectedDateKey = "";
+      let lastFocusedElement = null;
+      let toastTimer = null;
+      let database = null;
+      let localStorageAvailable = true;
+      let indexedDbAvailable = false;
+      let recordCache = {};
+      let recordTimestamps = {};
+
+      function pad(number) {
+        return String(number).padStart(2, "0");
+      }
+
+      function toDateKey(year, monthIndex, day) {
+        return `${year}-${pad(monthIndex + 1)}-${pad(day)}`;
+      }
+
+      function isAllowedKey(key) {
+        if (!DATE_KEY_PATTERN.test(key)) return false;
+        const [year, month, day] = key.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year
+          && date.getMonth() === month - 1
+          && date.getDate() === day
+          && date >= firstAllowedDate
+          && date <= lastAllowedDate;
+      }
+
+      function normalizeRecord(value) {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+        const fields = ["morning", "regular", "evening"];
+        const normalized = {};
+        for (const field of fields) {
+          const number = Number(value[field]);
+          if (!Number.isFinite(number) || number < 0 || !Number.isInteger(number)) return null;
+          normalized[field] = number;
+        }
+        return normalized;
+      }
+
+      function openDatabase() {
+        return new Promise((resolve, reject) => {
+          if (!("indexedDB" in window)) {
+            reject(new Error("indexeddb-unavailable"));
+            return;
+          }
+          const request = indexedDB.open(DB_NAME, DB_VERSION);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(RECORD_STORE)) {
+              db.createObjectStore(RECORD_STORE, { keyPath: "date" });
+            }
+            if (!db.objectStoreNames.contains(META_STORE)) {
+              db.createObjectStore(META_STORE, { keyPath: "key" });
+            }
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error || new Error("indexeddb-open-failed"));
+          request.onblocked = () => reject(new Error("indexeddb-blocked"));
+        });
+      }
+
+      function readLocalRecords() {
+        const records = {};
+        try {
+          for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (!key || !isAllowedKey(key)) continue;
+            const raw = localStorage.getItem(key);
+            const record = raw === null ? null : normalizeRecord(JSON.parse(raw));
+            if (record) records[key] = record;
+          }
+          localStorageAvailable = true;
+        } catch (error) {
+          localStorageAvailable = false;
+        }
+        return records;
+      }
+
+      function readLocalTimestamps() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(RECORD_TIMESTAMPS_KEY) || "{}");
+          return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+        } catch (error) {
+          return {};
+        }
+      }
+
+      function readIndexedRecords() {
+        return new Promise((resolve, reject) => {
+          const request = database.transaction(RECORD_STORE, "readonly").objectStore(RECORD_STORE).getAll();
+          request.onsuccess = () => {
+            const records = {};
+            const timestamps = {};
+            request.result.forEach(item => {
+              const record = normalizeRecord(item);
+              if (isAllowedKey(item.date) && record) {
+                records[item.date] = record;
+                timestamps[item.date] = Number(item.updatedAt) || 0;
+              }
+            });
+            resolve({ records, timestamps });
+          };
+          request.onerror = () => reject(request.error || new Error("indexeddb-read-failed"));
+        });
+      }
+
+      function replaceIndexedRecords(records, timestamps = {}) {
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(RECORD_STORE, "readwrite");
+          const store = transaction.objectStore(RECORD_STORE);
+          store.clear();
+          Object.entries(records).forEach(([date, record]) => {
+            store.put({ date, ...record, updatedAt: Number(timestamps[date]) || Date.now() });
+          });
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error || new Error("indexeddb-write-failed"));
+          transaction.onabort = () => reject(transaction.error || new Error("indexeddb-write-aborted"));
+        });
+      }
+
+      function putIndexedRecord(date, record, updatedAt) {
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(RECORD_STORE, "readwrite");
+          transaction.objectStore(RECORD_STORE).put({ date, ...record, updatedAt });
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error || new Error("indexeddb-write-failed"));
+          transaction.onabort = () => reject(transaction.error || new Error("indexeddb-write-aborted"));
+        });
+      }
+
+      function getIndexedMeta(key) {
+        if (!database) return Promise.resolve(null);
+        return new Promise((resolve, reject) => {
+          const request = database.transaction(META_STORE, "readonly").objectStore(META_STORE).get(key);
+          request.onsuccess = () => resolve(request.result ? request.result.value : null);
+          request.onerror = () => reject(request.error || new Error("indexeddb-meta-read-failed"));
+        });
+      }
+
+      function setIndexedMeta(key, value) {
+        if (!database) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(META_STORE, "readwrite");
+          transaction.objectStore(META_STORE).put({ key, value });
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error || new Error("indexeddb-meta-write-failed"));
+        });
+      }
+
+      function replaceLocalRecords(records, timestamps = {}) {
+        try {
+          const keysToRemove = [];
+          for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (key && isAllowedKey(key)) keysToRemove.push(key);
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+          Object.entries(records).forEach(([key, record]) => {
+            localStorage.setItem(key, JSON.stringify(record));
+          });
+          localStorage.setItem(RECORD_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+          localStorageAvailable = true;
+          return true;
+        } catch (error) {
+          localStorageAvailable = false;
+          return false;
+        }
+      }
+
+      function getRecord(key) {
+        return recordCache[key] || null;
+      }
+
+      function getAllRecords() {
+        return Object.fromEntries(Object.entries(recordCache).map(([key, record]) => [key, { ...record }]));
+      }
+
+      async function initializeStorage() {
+        const localRecords = readLocalRecords();
+        const localTimestamps = readLocalTimestamps();
+        let indexedSnapshot = { records: {}, timestamps: {} };
+        try {
+          database = await openDatabase();
+          indexedSnapshot = await readIndexedRecords();
+          indexedDbAvailable = true;
+        } catch (error) {
+          database = null;
+          indexedDbAvailable = false;
+        }
+
+        const allKeys = new Set([...Object.keys(indexedSnapshot.records), ...Object.keys(localRecords)]);
+        recordCache = {};
+        recordTimestamps = {};
+        allKeys.forEach(key => {
+          const localRecord = localRecords[key];
+          const indexedRecord = indexedSnapshot.records[key];
+          const localTime = Number(localTimestamps[key]) || 0;
+          const indexedTime = Number(indexedSnapshot.timestamps[key]) || 0;
+          const useLocal = localRecord && (!indexedRecord || localTime >= indexedTime);
+          recordCache[key] = { ...(useLocal ? localRecord : indexedRecord) };
+          recordTimestamps[key] = Math.max(localTime, indexedTime) || Date.now();
+        });
+        if (localStorageAvailable) replaceLocalRecords(recordCache, recordTimestamps);
+        if (database) {
+          try {
+            await replaceIndexedRecords(recordCache, recordTimestamps);
+            indexedDbAvailable = true;
+          } catch (error) {
+            indexedDbAvailable = false;
+          }
+        }
+        updateStorageStatus();
+      }
+
+      async function persistRecord(date, record) {
+        let localSaved = false;
+        let indexedSaved = false;
+        const updatedAt = Date.now();
+        try {
+          localStorage.setItem(date, JSON.stringify(record));
+          localStorage.setItem(RECORD_TIMESTAMPS_KEY, JSON.stringify({ ...recordTimestamps, [date]: updatedAt }));
+          localSaved = true;
+          localStorageAvailable = true;
+        } catch (error) {
+          localStorageAvailable = false;
+        }
+        if (database) {
+          try {
+            await putIndexedRecord(date, record, updatedAt);
+            indexedSaved = true;
+            indexedDbAvailable = true;
+          } catch (error) {
+            indexedDbAvailable = false;
+          }
+        }
+        if (!localSaved && !indexedSaved) throw new Error("all-storage-failed");
+        recordCache[date] = { ...record };
+        recordTimestamps[date] = updatedAt;
+        updateStorageStatus();
+        return localSaved && indexedSaved;
+      }
+
+      async function replaceAllRecords(records) {
+        const timestamp = Date.now();
+        const timestamps = Object.fromEntries(Object.keys(records).map(key => [key, timestamp]));
+        const localSaved = replaceLocalRecords(records, timestamps);
+        let indexedSaved = false;
+        if (database) {
+          try {
+            await replaceIndexedRecords(records, timestamps);
+            indexedSaved = true;
+            indexedDbAvailable = true;
+          } catch (error) {
+            indexedDbAvailable = false;
+          }
+        }
+        if (!localSaved && !indexedSaved) throw new Error("all-storage-failed");
+        recordCache = getValidatedRecordCopy(records);
+        recordTimestamps = timestamps;
+        updateStorageStatus();
+        return localSaved && indexedSaved;
+      }
+
+      function getValidatedRecordCopy(records) {
+        const copy = {};
+        Object.entries(records).forEach(([key, value]) => {
+          const record = normalizeRecord(value);
+          if (isAllowedKey(key) && record) copy[key] = record;
+        });
+        return copy;
+      }
+
+      function updateStorageStatus() {
+        const healthy = localStorageAvailable && indexedDbAvailable;
+        elements.storageStatus.textContent = healthy ? "双重存储：正常" : "双重存储：仅一份可用";
+        elements.storageStatus.classList.toggle("is-warning", !healthy);
+      }
+
+      function setModalOpen(modal, isOpen, focusTarget) {
+        if (isOpen) {
+          lastFocusedElement = document.activeElement;
+          modal.classList.add("is-open");
+          modal.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+          window.setTimeout(() => focusTarget && focusTarget.focus(), 0);
+        } else {
+          modal.classList.remove("is-open");
+          modal.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+          if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+            lastFocusedElement.focus();
+          }
+        }
+      }
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        elements.toast.textContent = message;
+        elements.toast.classList.add("is-visible");
+        toastTimer = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2200);
+      }
+
+      async function getMetaValue(key) {
+        try {
+          const localValue = localStorage.getItem(key);
+          if (localValue) return localValue;
+        } catch (error) {
+          localStorageAvailable = false;
+        }
+        try {
+          return await getIndexedMeta(key);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      async function setMetaValue(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          localStorageAvailable = true;
+        } catch (error) {
+          localStorageAvailable = false;
+        }
+        try {
+          await setIndexedMeta(key, value);
+        } catch (error) {
+          indexedDbAvailable = false;
+        }
+        updateStorageStatus();
+      }
+
+      function formatDateTime(value) {
+        if (!value) return "从未";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "从未";
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+      }
+
+      function isReminderDue(value) {
+        if (!value) return true;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return true;
+        return Date.now() - date.getTime() >= REMINDER_DAYS * 24 * 60 * 60 * 1000;
+      }
+
+      async function updateBackupStatus(showReminder = false) {
+        const [lastBackupAt, lastRestoreTestAt] = await Promise.all([
+          getMetaValue(LAST_BACKUP_KEY),
+          getMetaValue(LAST_RESTORE_TEST_KEY)
+        ]);
+        const backupDue = isReminderDue(lastBackupAt);
+        const restoreDue = isReminderDue(lastRestoreTestAt);
+        elements.lastBackupStatus.textContent = `上次备份：${formatDateTime(lastBackupAt)}`;
+        elements.restoreTestStatus.textContent = `恢复测试：${formatDateTime(lastRestoreTestAt)}`;
+        elements.lastBackupStatus.classList.toggle("is-warning", backupDue);
+        elements.restoreTestStatus.classList.toggle("is-warning", restoreDue);
+        if (showReminder && (backupDue || restoreDue)) {
+          window.setTimeout(() => showToast("备份提醒：请导出 JSON，并完成一次恢复测试"), 450);
+        }
+      }
+
+      function render() {
+        const year = activeDate.getFullYear();
+        const month = activeDate.getMonth();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        const firstWeekdayOffset = (new Date(year, month, 1).getDay() + 6) % 7;
+        const previousMonthDays = new Date(year, month, 0).getDate();
+        const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+
+        elements.monthTitle.textContent = `${year}年${month + 1}月`;
+        elements.calendarGrid.setAttribute("aria-label", `${year}年${month + 1}月日历`);
+        elements.prevMonth.disabled = year === START_YEAR && month === START_MONTH;
+        elements.nextMonth.disabled = year === END_YEAR && month === END_MONTH;
+        elements.calendarGrid.textContent = "";
+
+        const fragment = document.createDocumentFragment();
+        for (let slot = 0; slot < 42; slot += 1) {
+          const dayOffset = slot - firstWeekdayOffset + 1;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "date-cell";
+          button.setAttribute("role", "gridcell");
+
+          if (dayOffset < 1) {
+            const day = previousMonthDays + dayOffset;
+            button.disabled = true;
+            button.setAttribute("aria-label", `上月${day}日，不可选择`);
+            button.innerHTML = `<span class="date-number">${day}</span>`;
+          } else if (dayOffset > totalDays) {
+            const day = dayOffset - totalDays;
+            button.disabled = true;
+            button.setAttribute("aria-label", `下月${day}日，不可选择`);
+            button.innerHTML = `<span class="date-number">${day}</span>`;
+          } else {
+            const key = toDateKey(year, month, dayOffset);
+            const record = getRecord(key);
+            button.dataset.date = key;
+            button.setAttribute("aria-label", `${year}年${month + 1}月${dayOffset}日${record ? "，已录入" : "，未录入"}`);
+            button.innerHTML = `<span class="date-number">${dayOffset}</span>`;
+            if (key === todayKey) button.classList.add("is-today");
+            if (record) {
+              const dailyTotal = record.morning + record.regular + record.evening;
+              button.classList.add("has-data");
+              button.insertAdjacentHTML("beforeend", `<span class="data-dot" aria-hidden="true"></span><span class="day-total">共${dailyTotal}节</span>`);
+            }
+          }
+          fragment.appendChild(button);
+        }
+        elements.calendarGrid.appendChild(fragment);
+        updateStatistics();
+      }
+
+      function updateStatistics() {
+        const year = activeDate.getFullYear();
+        const month = activeDate.getMonth();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        let regular = 0;
+        let study = 0;
+        let recorded = 0;
+
+        for (let day = 1; day <= totalDays; day += 1) {
+          const record = getRecord(toDateKey(year, month, day));
+          if (!record) continue;
+          recorded += 1;
+          regular += record.regular;
+          study += record.morning + record.evening;
+        }
+        elements.regularTotal.textContent = regular;
+        elements.studyTotal.textContent = study;
+        elements.recordedDays.textContent = `${recorded}/${totalDays}`;
+      }
+
+      function changeMonth(offset) {
+        const candidate = new Date(activeDate.getFullYear(), activeDate.getMonth() + offset, 1);
+        if (candidate < firstAllowedDate || candidate > lastAllowedDate) return;
+        activeDate = candidate;
+        render();
+      }
+
+      function openEntry(key) {
+        const [year, month, day] = key.split("-").map(Number);
+        const record = getRecord(key) || { morning: 0, regular: 0, evening: 0 };
+        selectedDateKey = key;
+        elements.entryModalTitle.textContent = `${year}年${month}月${day}日`;
+        elements.morningInput.value = record.morning;
+        elements.regularInput.value = record.regular;
+        elements.eveningInput.value = record.evening;
+        setModalOpen(elements.entryModal, true, elements.morningInput);
+      }
+
+      function closeEntry() {
+        setModalOpen(elements.entryModal, false);
+        selectedDateKey = "";
+      }
+
+      function readInput(input) {
+        const value = Number(input.value);
+        return Number.isInteger(value) && value >= 0 ? value : null;
+      }
+
+      async function saveEntry(event) {
+        event.preventDefault();
+        const record = {
+          morning: readInput(elements.morningInput),
+          regular: readInput(elements.regularInput),
+          evening: readInput(elements.eveningInput)
+        };
+        if (Object.values(record).some(value => value === null)) {
+          showToast("请输入 0 或正整数");
+          return;
+        }
+        try {
+          const fullySaved = await persistRecord(selectedDateKey, record);
+          closeEntry();
+          render();
+          showToast(fullySaved ? "保存成功，双重存储已同步 ✓" : "已保存，但当前只有一份存储可用");
+        } catch (error) {
+          showToast("保存失败，请检查浏览器存储设置");
+        }
+      }
+
+      function downloadFile(content, fileName, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      }
+
+      async function exportJson() {
+        const data = getAllRecords();
+        const exportedAt = new Date().toISOString();
+        const payload = {
+          app: "课程统计",
+          version: 2,
+          exportedAt,
+          dateRange: { start: "2026-08-01", end: "2036-08-31" },
+          records: data
+        };
+        downloadFile(JSON.stringify(payload, null, 2), `课程统计备份-${exportedAt.slice(0, 10)}.json`, "application/json;charset=utf-8");
+        await setMetaValue(LAST_BACKUP_KEY, exportedAt);
+        await updateBackupStatus();
+        setModalOpen(elements.formatModal, false);
+        showToast("JSON 备份已导出，请保存到安全位置");
+      }
+
+      function exportCsv() {
+        const data = getAllRecords();
+        const rows = ["日期,早自习,正课,晚自习"];
+        Object.keys(data).sort().forEach(key => {
+          const record = data[key];
+          rows.push(`${key},${record.morning},${record.regular},${record.evening}`);
+        });
+        downloadFile(`\uFEFF${rows.join("\r\n")}`, "课程统计数据.csv", "text/csv;charset=utf-8");
+        setModalOpen(elements.formatModal, false);
+        showToast("CSV 数据已导出");
+      }
+
+      function parseImportData(parsed) {
+        const source = parsed && parsed.records && typeof parsed.records === "object" ? parsed.records : parsed;
+        if (!source || typeof source !== "object" || Array.isArray(source)) {
+          throw new Error("invalid-format");
+        }
+        const imported = {};
+        for (const [key, value] of Object.entries(source)) {
+          if (!isAllowedKey(key)) continue;
+          const record = normalizeRecord(value);
+          if (!record) throw new Error("invalid-record");
+          imported[key] = record;
+        }
+        return imported;
+      }
+
+      async function importData(event) {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = "";
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const imported = parseImportData(JSON.parse(text));
+          const count = Object.keys(imported).length;
+          const confirmed = window.confirm(`将覆盖当前所有课程统计数据，并导入 ${count} 天记录，是否继续？`);
+          if (!confirmed) return;
+
+          await replaceAllRecords(imported);
+          await setMetaValue(LAST_RESTORE_TEST_KEY, new Date().toISOString());
+          await updateBackupStatus();
+          render();
+          showToast(`导入成功，共 ${count} 天记录`);
+        } catch (error) {
+          showToast("导入失败：请选择有效的 JSON 备份文件");
+        }
+      }
+
+      function handleBackdropClick(event) {
+        if (event.target !== event.currentTarget) return;
+        setModalOpen(event.currentTarget, false);
+        if (event.currentTarget === elements.entryModal) selectedDateKey = "";
+      }
+
+      function handleKeydown(event) {
+        if (event.key !== "Escape") return;
+        if (elements.entryModal.classList.contains("is-open")) closeEntry();
+        else if (elements.formatModal.classList.contains("is-open")) setModalOpen(elements.formatModal, false);
+      }
+
+      async function registerOfflineApp() {
+        if (!("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) return;
+        try {
+          const registration = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+          if (registration.waiting) showToast("离线应用已有新版本，下次打开时更新");
+        } catch (error) {
+          console.warn("离线缓存注册失败", error);
+        }
+      }
+
+      async function requestPersistentStorage() {
+        try {
+          if (navigator.storage && navigator.storage.persist) {
+            await navigator.storage.persist();
+          }
+        } catch (error) {
+          console.warn("无法申请持久存储", error);
+        }
+      }
+
+      async function initializeApp() {
+        await initializeStorage();
+        render();
+        await updateBackupStatus(true);
+        requestPersistentStorage();
+        registerOfflineApp();
+      }
+
+      elements.prevMonth.addEventListener("click", () => changeMonth(-1));
+      elements.nextMonth.addEventListener("click", () => changeMonth(1));
+      elements.calendarGrid.addEventListener("click", event => {
+        const cell = event.target.closest(".date-cell[data-date]");
+        if (cell) openEntry(cell.dataset.date);
+      });
+      elements.entryForm.addEventListener("submit", saveEntry);
+      elements.entryClose.addEventListener("click", closeEntry);
+      elements.cancelEntry.addEventListener("click", closeEntry);
+      elements.entryModal.addEventListener("click", handleBackdropClick);
+      elements.formatModal.addEventListener("click", handleBackdropClick);
+      elements.exportButton.addEventListener("click", () => setModalOpen(elements.formatModal, true, elements.exportJson));
+      elements.formatClose.addEventListener("click", () => setModalOpen(elements.formatModal, false));
+      elements.exportJson.addEventListener("click", exportJson);
+      elements.exportCsv.addEventListener("click", exportCsv);
+      elements.importButton.addEventListener("click", () => elements.importFile.click());
+      elements.importFile.addEventListener("change", importData);
+      document.addEventListener("keydown", handleKeydown);
+
+      initializeApp().catch(() => {
+        elements.storageStatus.textContent = "存储初始化失败，请勿继续录入";
+        elements.storageStatus.classList.add("is-warning");
+        showToast("页面存储初始化失败，请更换浏览器后重试");
+      });
+    })();
+  </script>
+</body>
+</html>
