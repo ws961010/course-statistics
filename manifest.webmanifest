@@ -1,0 +1,26 @@
+{
+  "name": "每日课程统计",
+  "short_name": "课程统计",
+  "description": "记录每日早自习、正课和晚自习数量，支持离线使用与本地双重存储。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8fcff",
+  "theme_color": "#eaf5ff",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
