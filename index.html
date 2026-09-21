@@ -98,6 +98,7 @@
 
     .calendar-card,
     .stats-card,
+    .本月监考,
     .backup-card {
       border: 1px solid rgba(255, 255, 255, 0.86);
       border-radius: 1.5rem;
@@ -589,6 +590,35 @@
       line-height: 1.65;
     }
 
+    .本月监考 {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      margin-top: 0.85rem;
+      padding: 0.8rem 1rem;
+      color: #55738e;
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+
+    .本月监考 .number-input {
+      width: 5.6rem;
+      min-height: 2.5rem;
+      padding: 0.5rem 0.65rem;
+    }
+
+    .invigilation-minutes {
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .invigilation-unit {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
     .toast {
       position: fixed;
       z-index: 200;
@@ -703,6 +733,13 @@
         <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
       </div>
       <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="当月日历"></div>
+    </section>
+
+    <section class="本月监考" aria-label="本月监考时长">
+      <label for="invigilationHours">本月监考时长</label>
+      <input class="number-input" id="invigilationHours" type="number" min="0" step="0.5" value="2" inputmode="decimal" aria-describedby="invigilationMinutes">
+      <span class="invigilation-unit" aria-hidden="true">小时</span>
+      <output class="invigilation-minutes" id="invigilationMinutes" for="invigilationHours" aria-live="polite">120 分钟</output>
     </section>
 
     <section class="stats-card" aria-label="本月统计" aria-live="polite">
@@ -827,6 +864,8 @@
         exportButton: document.getElementById("exportButton"),
         exportJson: document.getElementById("exportJson"),
         exportCsv: document.getElementById("exportCsv"),
+        invigilationHours: document.getElementById("invigilationHours"),
+        invigilationMinutes: document.getElementById("invigilationMinutes"),
         importButton: document.getElementById("importButton"),
         importFile: document.getElementById("importFile"),
         storageStatus: document.getElementById("storageStatus"),
@@ -1143,6 +1182,31 @@
         toastTimer = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2200);
       }
 
+      function updateInvigilationMinutes() {
+        const hours = Number(elements.invigilationHours.value);
+        const minutes = Number.isFinite(hours) && hours >= 0 ? hours * 60 : 0;
+        elements.invigilationMinutes.textContent = `${minutes} 分钟`;
+      }
+
+      function getInvigilationHoursKey() {
+        return `courseStats:invigilationHours:${activeDate.getFullYear()}-${pad(activeDate.getMonth() + 1)}`;
+      }
+
+      async function loadInvigilationHours() {
+        const monthKey = getInvigilationHoursKey();
+        const savedValue = await getMetaValue(monthKey);
+        if (monthKey !== getInvigilationHoursKey()) return;
+        const hours = savedValue === null ? NaN : Number(savedValue);
+        elements.invigilationHours.value = Number.isFinite(hours) && hours >= 0 ? hours : 2;
+        updateInvigilationMinutes();
+      }
+
+      async function persistInvigilationHours() {
+        const hours = Number(elements.invigilationHours.value);
+        if (!Number.isFinite(hours) || hours < 0) return;
+        await setMetaValue(getInvigilationHoursKey(), String(hours));
+      }
+
       async function getMetaValue(key) {
         try {
           const localValue = localStorage.getItem(key);
@@ -1271,6 +1335,7 @@
         elements.regularTotal.textContent = regular;
         elements.studyTotal.textContent = study;
         elements.recordedDays.textContent = `${recorded}/${totalDays}`;
+        loadInvigilationHours();
       }
 
       function changeMonth(offset) {
@@ -1454,6 +1519,8 @@
       elements.formatClose.addEventListener("click", () => setModalOpen(elements.formatModal, false));
       elements.exportJson.addEventListener("click", exportJson);
       elements.exportCsv.addEventListener("click", exportCsv);
+      elements.invigilationHours.addEventListener("input", updateInvigilationMinutes);
+      elements.invigilationHours.addEventListener("change", persistInvigilationHours);
       elements.importButton.addEventListener("click", () => elements.importFile.click());
       elements.importFile.addEventListener("change", importData);
       document.addEventListener("keydown", handleKeydown);
